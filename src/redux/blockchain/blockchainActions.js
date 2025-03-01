@@ -1,5 +1,5 @@
-import { Web3 } from "web3"; // Updated to named import for Web3 4.x
-import { Web3EthContract } from "web3-eth-contract"; // Named import for Web3 4.x
+import { Web3 } from "web3"; // Named import for Web3 4.x
+import { Contract } from "web3-eth-contract"; // Updated import for Web3 4.x
 import { fetchData } from "../data/dataActions";
 
 const connectRequest = () => {
@@ -50,13 +50,12 @@ export const connect = () => {
       const { ethereum } = window;
       const metamaskIsInstalled = ethereum && ethereum.isMetaMask;
       if (metamaskIsInstalled) {
-        // No need to setProvider manually with Web3 4.x
         const web3 = new Web3(ethereum); // Web3 4.x accepts provider directly
-        await ethereum.request({ method: "eth_requestAccounts" }); // Ensure accounts are requested
-        const accounts = await web3.eth.getAccounts(); // Use getAccounts method
-        const networkId = await web3.eth.getChainId(); // Use getChainId for Web3 4.x
+        await ethereum.request({ method: "eth_requestAccounts" });
+        const accounts = await web3.eth.getAccounts();
+        const networkId = await web3.eth.getChainId();
         if (networkId === CONFIG.NETWORK.ID) {
-          const smartContract = new Web3EthContract(abi, CONFIG.CONTRACT_ADDRESS); // Simplified
+          const smartContract = new Contract(abi, CONFIG.CONTRACT_ADDRESS); // Updated class
           dispatch(
             connectSuccess({
               account: accounts[0],
@@ -64,7 +63,6 @@ export const connect = () => {
               web3: web3,
             })
           );
-          // Add listeners
           ethereum.on("accountsChanged", (accounts) => {
             dispatch(updateAccount(accounts[0]));
           });
