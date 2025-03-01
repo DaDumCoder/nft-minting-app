@@ -1,5 +1,5 @@
-import { Web3 } from "web3"; // Web3 4.x
-import { Contract } from "web3-eth-contract"; // Web3 4.x
+import { Web3 } from "web3";
+import { Contract } from "web3-eth-contract"; // Ensure correct import
 import { fetchData } from "../data/dataActions";
 
 const connectRequest = () => {
@@ -48,35 +48,53 @@ export const connect = () => {
       });
       const CONFIG = await configResponse.json();
       const { ethereum } = window;
-      const metamaskIsInstalled = ethereum && ethereum.isMetaMask;
+      if (!ethereum) {
+        dispatch(connectFailed("MetaMask is not installed or not detected."));
+        return;
+      }
+      const metamaskIsInstalled = ethereum.isMetaMask;
       if (metamaskIsInstalled) {
         const web3 = new Web3(ethereum);
-        await ethereum.request({ method: "eth_requestAccounts" });
-        const accounts = await web3.eth.getAccounts();
-        const networkId = await web3.eth.getChainId();
-        console.log("Detected Network ID (type:", typeof networkId, "):", networkId);
-        console.log("Expected Network ID (type:", typeof CONFIG.NETWORK.ID, "):", CONFIG.NETWORK.ID);
-        if (Number(networkId) === Number(CONFIG.NETWORK.ID)) { // Force number comparison
-          const smartContract = new Contract(abi, CONFIG.CONTRACT_ADDRESS);
-          console.log("Smart Contract Initialized:", smartContract);
-          dispatch(
-            connectSuccess({
-              account: accounts[0],
-              smartContract: smartContract,
-              web3: web3,
-            })
-          );
-          ethereum.on("accountsChanged", (accounts) => {
-            dispatch(updateAccount(accounts[0]));
-          });
-          ethereum.on("chainChanged", () => {
-            window.location.reload();
-          });
-        } else {
-          dispatch(connectFailed(`Change network to ${CONFIG.NETWORK.NAME}. Network ID mismatch: ${networkId} != ${CONFIG.NETWORK.ID}`));
+        try {
+          const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+          const networkId = await web3.eth.getChainId();
+          console.log("Detected Network ID (type:", typeof networkId, "):", networkId);
+          console.log("Expected Network ID (type:", typeof CONFIG.NETWORK.ID, "):", CONFIG.NETWORK.ID);
+          if (Number(networkId) === Number(CONFIG.NETWORK.ID)) {
+            const smartContract = new Contract(abi, CONFIG.CONTRACT_ADDRESS, {
+              from: accounts[0],
+              gas: 2000000,
+            });
+            smartContract.setProvider(ethereum); // Ensure provider is set
+            if (!smartContract.options.address) {
+              throw new Error("Contract address not set correctly.");
+            }
+            dispatch(
+              connectSuccess({
+                account: accounts[0],
+                smartContract: smartContract,
+                web3: web3,
+              })
+            );
+            ethereum.on("accountsChanged", (accounts) => {
+              dispatch(updateAccount(accounts[0]));
+            });
+            ethereum.on("chainChanged", () => {
+              window.location.reload();
+            });
+          } else {
+            dispatch(connectFailed(`Change network to ${CONFIG.NETWORK.NAME}. Network ID mismatch: ${networkId} != ${CONFIG.NETWORK.ID}`));
+          }
+        } catch (err) {
+          console.error("MetaMask Request Error:", err);
+          if (err.code === 4001) {
+            dispatch(connectFailed("User rejected the request."));
+          } else {
+            dispatch(connectFailed("Failed to connect to MetaMask: " + err.message));
+          }
         }
       } else {
-        dispatch(connectFailed("Install Metamask."));
+        dispatch(connectFailed("Please use MetaMask as your wallet."));
       }
     } catch (err) {
       console.error("Connection Error:", err);
