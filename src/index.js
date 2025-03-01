@@ -1,19 +1,17 @@
+// src/index.js (after fix)
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from 'react-dom/client'; // Line 2: Updated import
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import store from "./redux/store";
 import { Provider } from "react-redux";
 import "./styles/reset.css";
 
-ReactDOM.render(
+const root = createRoot(document.getElementById("root")); // Line 9: New root creation
+root.render( // Line 10: New render method
   <Provider store={store}>
     <App />
-  </Provider>,
-  document.getElementById("root")
+  </Provider>
 );
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
