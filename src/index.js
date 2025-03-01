@@ -1,14 +1,13 @@
-// src/index.js (after fix)
 import React from "react";
-import { createRoot } from 'react-dom/client'; // Line 2: Updated import
+import { createRoot } from 'react-dom/client'; // Updated for React 18
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import store from "./redux/store";
+import store from "./redux/store"; // Uses the fixed store
 import { Provider } from "react-redux";
 import "./styles/reset.css";
 
-const root = createRoot(document.getElementById("root")); // Line 9: New root creation
-root.render( // Line 10: New render method
+const root = createRoot(document.getElementById("root"));
+root.render(
   <Provider store={store}>
     <App />
   </Provider>
