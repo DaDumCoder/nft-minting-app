@@ -54,10 +54,11 @@ export const connect = () => {
         await ethereum.request({ method: "eth_requestAccounts" });
         const accounts = await web3.eth.getAccounts();
         const networkId = await web3.eth.getChainId();
-        console.log("Detected Network ID:", networkId, "Expected:", CONFIG.NETWORK.ID); // Debug log
-        if (networkId === Number(CONFIG.NETWORK.ID)) { // Ensure CONFIG.NETWORK.ID is a number
+        console.log("Detected Network ID (type:", typeof networkId, "):", networkId);
+        console.log("Expected Network ID (type:", typeof CONFIG.NETWORK.ID, "):", CONFIG.NETWORK.ID);
+        if (Number(networkId) === Number(CONFIG.NETWORK.ID)) { // Force number comparison
           const smartContract = new Contract(abi, CONFIG.CONTRACT_ADDRESS);
-          console.log("Smart Contract Initialized:", smartContract); // Debug log
+          console.log("Smart Contract Initialized:", smartContract);
           dispatch(
             connectSuccess({
               account: accounts[0],
@@ -78,7 +79,7 @@ export const connect = () => {
         dispatch(connectFailed("Install Metamask."));
       }
     } catch (err) {
-      console.error("Connection Error:", err); // Debug log
+      console.error("Connection Error:", err);
       dispatch(connectFailed("Something went wrong: " + err.message));
     }
   };
