@@ -121,52 +121,57 @@ function App() {
   });
 
   const claimNFTs = () => {
-    if (!blockchain.account || !blockchain.smartContract) {
-      setFeedback("Wallet not connected. Please reconnect.");
-      return;
-    }
-    const cost = BigInt(CONFIG.WEI_COST);
-    const gasLimit = BigInt(CONFIG.GAS_LIMIT);
-    const totalCostWei = (cost * BigInt(mintAmount)).toString();
-    const totalGasLimit = (gasLimit * BigInt(mintAmount)).toString();
-    console.log("Minting:", mintAmount, "NFTs");
-    console.log("Total Cost (Wei):", totalCostWei);
-    console.log("Total Gas Limit:", totalGasLimit);
-    if (BigInt(totalCostWei) > BigInt(blockchain.web3.utils.toWei("100", "ether"))) {
-      setFeedback("Cost exceeds safe limit. Reduce mint amount.");
+  if (!blockchain.account || !blockchain.smartContract) {
+    setFeedback("Wallet not connected. Please reconnect.");
+    return;
+  }
+  // Check if the smartContract has a provider
+  if (!blockchain.smartContract.currentProvider) {
+    setFeedback("Smart contract provider not initialized. Please reconnect.");
+    return;
+  }
+  const cost = BigInt(CONFIG.WEI_COST);
+  const gasLimit = BigInt(CONFIG.GAS_LIMIT);
+  const totalCostWei = (cost * BigInt(mintAmount)).toString();
+  const totalGasLimit = (gasLimit * BigInt(mintAmount)).toString();
+  console.log("Minting:", mintAmount, "NFTs");
+  console.log("Total Cost (Wei):", totalCostWei);
+  console.log("Total Gas Limit:", totalGasLimit);
+  if (BigInt(totalCostWei) > BigInt(blockchain.web3.utils.toWei("100", "ether"))) {
+    setFeedback("Cost exceeds safe limit. Reduce mint amount.");
+    setClaimingNft(false);
+    return;
+  }
+  setFeedback(`Minting your ${CONFIG.NFT_NAME}...`);
+  setClaimingNft(true);
+  blockchain.smartContract.methods
+    .mint(blockchain.account, mintAmount)
+    .send({
+      gas: totalGasLimit,
+      to: CONFIG.CONTRACT_ADDRESS,
+      from: blockchain.account,
+      value: totalCostWei,
+    })
+    .once("error", (err) => {
+      console.error("Minting Error:", err.message);
+      setFeedback(`Minting failed: ${err.message}`);
       setClaimingNft(false);
-      return;
-    }
-    setFeedback(`Minting your ${CONFIG.NFT_NAME}...`);
-    setClaimingNft(true);
-    blockchain.smartContract.methods
-      .mint(blockchain.account, mintAmount)
-      .send({
-        gas: totalGasLimit,
-        to: CONFIG.CONTRACT_ADDRESS,
-        from: blockchain.account,
-        value: totalCostWei,
-      })
-      .once("error", (err) => {
-        console.error("Minting Error:", err.message);
-        setFeedback(`Minting failed: ${err.message}`);
-        setClaimingNft(false);
-      })
-      .then((receipt) => {
-        console.log("Minting Success:", receipt);
-        setFeedback(
-          `WOW, the ${CONFIG.NFT_NAME} is yours! go visit ${CONFIG.MARKETPLACE_LINK} to view it.`
-        );
-        setClaimingNft(false);
-        dispatch(fetchData(blockchain.account));
-      })
-      .catch((err) => {
-        console.error("Minting Catch Error:", err.message);
-        setFeedback(`Transaction failed: ${err.message}`);
-        setClaimingNft(false);
-      });
-  };
-
+    })
+    .then((receipt) => {
+      console.log("Minting Success:", receipt);
+      setFeedback(
+        `WOW, the ${CONFIG.NFT_NAME} is yours! go visit ${CONFIG.MARKETPLACE_LINK} to view it.`
+      );
+      setClaimingNft(false);
+      dispatch(fetchData(blockchain.account));
+    })
+    .catch((err) => {
+      console.error("Minting Catch Error:", err.message);
+      setFeedback(`Transaction failed: ${err.message}`);
+      setClaimingNft(false);
+    });
+};
+  
   const decrementMintAmount = () => {
     let newMintAmount = mintAmount - 1;
     if (newMintAmount < 1) {
